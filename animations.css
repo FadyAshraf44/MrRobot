@@ -1,0 +1,183 @@
+/* Enhanced Animations for Mr. Robot CTF Walkthrough */
+
+/* Parallax scrolling effect */
+.terminal-background {
+  transform: translateZ(-1px) scale(2);
+  background: linear-gradient(45deg, rgba(0,0,0,0.9), rgba(0,20,0,0.9));
+  background-size: 200% 200%;
+  animation: gradientBG 15s ease infinite;
+}
+
+@keyframes gradientBG {
+  0% { background-position: 0% 50% }
+  50% { background-position: 100% 50% }
+  100% { background-position: 0% 50% }
+}
+
+/* Smooth section reveal animation with intersection observer */
+.section {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 1s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+
+.section.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Modern terminal text typing effect */
+.terminal-text {
+  overflow: hidden;
+  border-right: 2px solid #4ade80;
+  white-space: nowrap;
+  margin: 0 auto;
+  letter-spacing: 0.15em;
+  animation: typing 3.5s steps(40, end),
+             blink-caret 0.75s step-end infinite;
+}
+
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100% }
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent }
+  50% { border-color: #4ade80 }
+}
+
+/* Advanced RGB split glitch effect */
+.glitch-text {
+  position: relative;
+  animation: glitch 3s infinite;
+  text-shadow: 0.05em 0 0 #ff00ff, -0.025em -0.05em 0 #00ffff,
+               0.025em 0.05em 0 #ffff00;
+}
+
+.glitch-text::before,
+.glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+  animation: glitch-layers 4s infinite alternate-reverse;
+}
+
+.glitch-text::before {
+  left: 0.05em;
+  text-shadow: -2px 0 #ff00ff;
+  animation: glitch-anim 5s infinite alternate-reverse;
+}
+
+.glitch-text::after {
+  left: -0.05em;
+  text-shadow: 2px 0 #00ffff;
+  animation: glitch-anim2 1s infinite alternate-reverse;
+}
+
+@keyframes glitch-anim {
+  0% { clip-path: inset(71% 0 10% 0); }
+  20% { clip-path: inset(29% 0 71% 0); }
+  40% { clip-path: inset(83% 0 1% 0); }
+  60% { clip-path: inset(23% 0 61% 0); }
+  80% { clip-path: inset(13% 0 95% 0); }
+  100% { clip-path: inset(100% 0 0% 0); }
+}
+
+@keyframes glitch-anim2 {
+  0% { clip-path: inset(0 0 87% 0); }
+  20% { clip-path: inset(0 0 33% 0); }
+  40% { clip-path: inset(0 0 64% 0); }
+  60% { clip-path: inset(0 0 12% 0); }
+  80% { clip-path: inset(0 0 87% 0); }
+  100% { clip-path: inset(0 0 100% 0); }
+}
+
+/* Interactive navigation link hover effect */
+.nav-link {
+  position: relative;
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -4px;
+  left: 50%;
+  background: linear-gradient(90deg, transparent, #4ade80, transparent);
+  transition: width 0.3s ease, left 0.3s ease;
+}
+
+.nav-link:hover {
+  color: #4ade80;
+  text-shadow: 0 0 8px rgba(74, 222, 128, 0.5);
+}
+
+.nav-link:hover::after {
+  width: 100%;
+  left: 0;
+}
+
+/* Modern code block interaction */
+.code-block {
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  backdrop-filter: blur(4px);
+}
+
+.code-block:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(74, 222, 128, 0.2),
+              0 0 0 1px rgba(74, 222, 128, 0.1);
+}
+
+/* Enhanced screenshot container animation */
+.screenshot {
+  transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.screenshot:hover {
+  transform: scale(1.02) translateY(-5px);
+  box-shadow: 0 15px 35px rgba(74, 222, 128, 0.25),
+              0 0 0 1px rgba(74, 222, 128, 0.1);
+}
+
+/* Advanced challenge card interaction */
+.challenge-card {
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  position: relative;
+}
+
+.challenge-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  border: 2px solid #4ade80;
+  transition: all 0.4s ease;
+}
+
+.challenge-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 35px rgba(74, 222, 128, 0.3);
+}
+
+.challenge-card:hover::after {
+  opacity: 1;
+  inset: -4px;
+}
+
+/* Modern status bar indicator */
+.indicator {
+  animation: modernPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes modernPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.95); }
+}
